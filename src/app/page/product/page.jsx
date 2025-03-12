@@ -91,7 +91,7 @@ const ProductPage = () => {
 
     return `${hours}:${minutes}:${seconds}`
   }
-
+  
   if (loading) return (
     <div className='flex flex-col justify-center items-center h-screen text-4xl text-center font-bold'>
       <div className='p-4'>Loading...</div>
@@ -100,8 +100,8 @@ const ProductPage = () => {
   );
   if (error) return (
     <div className='flex flex-col justify-center items-center h-screen text-4xl text-center font-bold'>
-      <div className='p-4'>Loading...</div>
-      <img alt="Loading" src='https://i.pinimg.com/originals/f2/9f/02/f29f025c9ff5297e8083c52b01f1a709.gif' />
+      <div className='p-4'>Error: {error}</div>
+      <img alt="Error" src='https://i.pinimg.com/originals/f2/9f/02/f29f025c9ff5297e8083c52b01f1a709.gif' />
     </div>
   );
 
@@ -109,51 +109,44 @@ const ProductPage = () => {
 
   return (
   <div>
-      {/* <div>
-        <Category categories={categories} onCategorySelect={handleCategorySelect} />
-        <h1>Products</h1>
-        <ul>
-          {filteredProducts.map((product) => (
-            <li key={product.id}>{product.name}</li>
-          ))}
-        </ul>
-      </div> */}
-      <div className="max-w-full mx-auto bg-white p-8">
-        <h1 className="font-bold mb-4 text-center font-extrabold text-4xl p-2 shadow-xl bg-gradient-to-tr from-yellow-400 to-red-300">Auction Product List</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 p-4">
-          {products.map((product) => (
+    <div className="max-w-full mx-auto bg-white p-8">
+      <h1 className="font-bold mb-4 text-center font-extrabold text-4xl p-2 shadow-xl bg-gradient-to-tr from-yellow-400 to-red-300">Auction Product List</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 p-4">
+        {products && products.length > 0 ? (
+          products.map((product) => (
             <div key={product._id} className="border rounded-lg p-4 bg-white shadow-xl">
               <Link href={{
-                  pathname: `/page/bid`,
-                  query: { 
-                    id: product._id,
-                    name: product.name,
-                    image: product.image,
-                    price: product.currentPrice,
-                    prices: product.startingPrice,
-                    Date: product.expiresAt,
-                    bids: product.bids.length,
-                    discription: product.description
-                  }
-                }} legacyBehavior>
-                  <a>
-                    <img src={product.image} alt={product.name} className="w-full h-64 object-cover mb-4 rounded-lg cursor-pointer" />
-                  </a>
+                pathname: `/page/bid`,
+                query: { 
+                  id: product._id,
+                  name: product.name,
+                  image: Array.isArray(product.image) ? product.image[0] : product.image, // Check if image is array
+                  price: product.currentPrice,
+                  prices: product.startingPrice,
+                  Date: product.expiresAt,
+                  bids: product.bids.length,
+                  discription: product.description
+                }
+              }} legacyBehavior>
+                <a>
+                  <img 
+                    src={Array.isArray(product.image) ? product.image[0] : product.image} 
+                    alt={product.name} 
+                    className="w-full h-auto mb-4 rounded-lg cursor-pointer"
+                  />
+                </a>
               </Link>
               <h2 className="font-bold text-xl mb-2">{product.name}</h2>
               <p className="text-gray-700 mb-2">Current Bid: {product.currentPrice} ฿</p>
               <p className="text-md text-red-500 font-semibold">{timeLeft[product._id] || "Loading..."}</p>
             </div>
-          ))}
-        </div>
+          ))
+        ) : (
+          <p className="text-center text-gray-500">No products available</p>
+        )}
       </div>
-      {/* <div className="max-w-full mx-auto bg-white p-8 mt-8">
-        <h2 className="font-bold mb-4 text-center font-extrabold text-2xl p-2 shadow-xl bg-gradient-to-tr from-green-400 to-blue-300">Cart</h2>
-        <Link href="/page/cart" legacyBehavior>
-          <a className="text-blue-500 underline">Go to Cart</a>
-        </Link>
-      </div> */}
     </div>
+  </div>
   );
 };
 

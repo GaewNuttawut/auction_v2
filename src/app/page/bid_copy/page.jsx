@@ -24,8 +24,12 @@ function ProductDetailsPage() {
   const [minimumBidIncrement, setMinimumBidIncrement] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [bidsPerPage] = useState(5);
-  const [product, setProduct] = useState([])
-  const [description, setDescription] = useState('')
+  const [product, setProduct] = useState([]);
+  const [description, setDescription] = useState('');
+  const [auction, setAuction] = useState(null);
+  const [images, setImages] = useState([]); // เก็บรูปภาพสินค้าแบบ array
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const id = searchParams.get('id');
   const name = searchParams.get('name');
@@ -99,11 +103,23 @@ function ProductDetailsPage() {
     .then(data => {
       if (data.status === 'success') {
         const auction = data.data;
+        const auctionData = data.data;
         setStartingPrice(auction.startingPrice);
         setCurrentPrice(auction.currentPrice);
         setMinimumBidIncrement(auction.minimumBidIncrement);
         setDescription(auction.description); // Set the description state
+        setProduct(auction.product); // Set the product state
+        setImages(auction.image || []); // ✅ รองรับหลายรูปภาพ
+        setAuction(auctionData);
+        setLoading(false);
 
+        // Handle both single image and array of images
+        const auctionImages = Array.isArray(auction.image) ? auction.image : [auction.image];
+        setImages(auctionImages);
+        setSelectedImage(auctionImages[0]); // Set first image as selected
+
+        // Log the product data to verify
+        console.log('Product data:', auction.product);
 
         // ✅ ตั้งเวลาหมดอายุ
         const endTime = new Date(auction.expiresAt).getTime();
@@ -146,10 +162,11 @@ function ProductDetailsPage() {
     }
   };
 
+
   // 📌 ฟังก์ชันสำหรับการประมูล
   const handleBid = async () => {
     if (!bidAmount || bidAmount < currentPrice + minimumBidIncrement) {
-      toast.error(`Please enter a price greater than or equal to ${currentPrice + minimumBidIncrement} บาท`);
+      alert(`กรุณาใส่ราคาที่มากกว่าหรือเท่ากับ ${currentPrice + minimumBidIncrement} บาท`);
       return;
     }
 
@@ -172,18 +189,12 @@ function ProductDetailsPage() {
             </div>
           </div>
         );
+        // window.location.reload();
       } else {
-        toast.error(<div>
-          Please log in to place a bid.
-          <div>
-          <button onClick={() => router.push('/page/login')} className="bg-red-500 text-white py-1 px-2 rounded mt-2">
-              Confirm
-            </button>
-          </div>
-        </div>);
+        alert(data.message);
       }
     } catch (err) {
-      toast.error('An error occurred.!');
+      alert('เกิดข้อผิดพลาด!');
     }
   };
 
@@ -209,6 +220,20 @@ function ProductDetailsPage() {
     setBidAmount(currentPrice.toFixed(2));
   }, [currentPrice]);
 
+
+  // 📌 ฟังก์ชันเปลี่ยนรูปภาพ
+  const nextImage = () => {
+    const newIndex = (currentImageIndex + 1) % images.length;
+    setCurrentImageIndex(newIndex);
+    setSelectedImage(images[newIndex]); // Update selected image
+  };
+
+  const prevImage = () => {
+    const newIndex = (currentImageIndex - 1 + images.length) % images.length;
+    setCurrentImageIndex(newIndex);
+    setSelectedImage(images[newIndex]); // Update selected image
+  };
+
   const indexOfLastBid = currentPage * bidsPerPage;
   const indexOfFirstBid = indexOfLastBid - bidsPerPage;
   const currentBids = bidHistory.slice(indexOfFirstBid, indexOfLastBid);
@@ -220,9 +245,80 @@ function ProductDetailsPage() {
       <ToastContainer />
       <div className="max-w-screen-2xl mx-auto bg-white pt-20 m-10 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="rounded-lg overflow-hidden">
-            <img src={image} alt={name} className="w-full h-auto object-cover" />
+          {/* Main Image Section */}
+          <div className="space-y-4">
+             <div className="relative">
+               <img
+                src={images[currentImageIndex]}
+                alt={name}
+                className="w-full h-[400px] object-contain"
+              />
+              
+              {/* Navigation Arrows with improved styling */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-600/50 hover:bg-gray-600 text-white p-2 rounded-full transition-colors duration-200"
+                  >
+                    ◀
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-600/50 hover:bg-gray-600 text-white p-2 rounded-full transition-colors duration-200"
+                  >
+                    ▶
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="grid grid-cols-5 gap-2 mt-4">
+                {images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSelectedImage(img);
+                      setCurrentImageIndex(index);
+                    }}
+                    className={`relative rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImage === img 
+                        ? 'border-yellow-500 shadow-lg scale-105' 
+                        : 'border-gray-200 hover:border-pink-300'
+                    }`}
+                  >
+                    <div className="aspect-square">
+                      <img
+                        src={img}
+                        alt={`View ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          {/* <div className="rounded-lg overflow-hidden">
+            <Slider>
+              {product && product.image && Array.isArray(product.image) ? (
+                product.image.map((img, index) => (
+                  <div key={index}>
+                    <img src={img} alt={`${name} ${index + 1}`} className="w-full h-auto object-cover" />
+                  </div>
+                ))
+              ) : (
+                product && product.image && (
+                  <img src={product.image} alt={name} className="w-full h-auto object-cover" />
+                )
+              )}
+            </Slider>
+          </div> */}
+            {/* <div className="rounded-lg overflow-hidden">
+              <img src={image} alt={name} className="w-full h-auto object-cover" />
+            </div> */}
 
           <div className="space-y-6">
             <h1 className="text-3xl font-bold">{name}</h1>
@@ -243,13 +339,13 @@ function ProductDetailsPage() {
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2 ">Product details</h2>
+              <h2 className="text-xl font-semibold mb-2">Product details</h2>
               <span className="text-lg font-sm text-gray-500 pl-4">{description}</span>
             </div>
 
-            <div className="space-y-4 ">
-              <div className=' border-t '>
-                <label className="block text-gray-600 ml-8 mb-2 mt-4">Place You Bid :</label>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-600 ml-8 mb-2">Place You Bid :</label>
                 <div className="flex items-center space-x-2 justify-center">
                   <button onClick={handleDecrementBid} className="bg-[#FF0000] hover:bg-red-400 text-black font-bold py-2 px-4 rounded">
                     -
@@ -267,24 +363,9 @@ function ProductDetailsPage() {
                 </div>
               </div>
               <div className='flex justify-center items-center space-x-4 mt-4'>
-                {/* <button className="w-full bg-[#00FFFF] text-white py-3 rounded-lg hover:bg-blue-600 mt-2" 
+                <button className="w-full bg-[#00FFFF] text-white py-3 rounded-lg hover:bg-blue-600 mt-2" 
                   onClick={handleBid}>
                   Bid Now!
-                </button> */}
-                <button className="w-full bg-[#FF00FF] text-white py-3 rounded-lg hover:bg-purple-600 mt-2"
-                  onClick={() => {
-                    toast.info(
-                      <div>
-                        Do you want to go to the login page?
-                        <div>
-                          <button onClick={() => router.push('/page/login')} className="bg-blue-500 text-white py-1 px-2 rounded mt-2">
-                            Confirm
-                          </button>
-                        </div>
-                      </div>
-                      );
-                    }}>
-                  Login
                 </button>
                 <div className="flex justify-end">
                   <button

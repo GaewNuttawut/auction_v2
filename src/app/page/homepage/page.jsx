@@ -48,9 +48,9 @@ function HomePage() {
           <div>
             <Category/>
           </div>
-          <div>
+          {/* <div>
             <CreateAuction />
-          </div>
+          </div> */}
           <div>
             <ScrollToTop />
           </div>

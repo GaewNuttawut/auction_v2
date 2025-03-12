@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
+import Input from '../../components/Input';
 
 const API_URL = "http://localhost:3111/api/v1";
 const socket = io("http://localhost:3111");
@@ -29,6 +30,40 @@ function ProfilePage() {
   const [myCreatedAuctions, setMyCreatedAuctions] = useState([]);
   const router = useRouter();
   const [myWinningBids, setMyWinningBids] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [message, setMessage] = useState(null); // Define the message state
+  const categories = [
+    { id: "chair", name: "Chair" },
+    { id: "sofas_and_armchairs", name: "Sofas and armchairs" },
+    { id: "table", name: "Table" },
+    { id: "cupboard", name: "Cupboard" },
+    { id: "bad", name: "Bad" },
+    { id: "counter", name: "Counter" },
+    { id: "office_furniture", name: "Office furniture" },
+    { id: "Kitchenware_and_freezer", name: "Kitchenware and freezer" },
+    { id: "door", name: "Door" },
+    { id: "home_decoration", name: "Home decoration" },
+  ];
+  const [formData, setFormData] = useState({
+    name: '',
+    category: '',
+    description: '',
+    startPrice: '',
+    minBid: '',
+    images: []
+  });
+  const [previewImages, setPreviewImages] = useState([]);
+
+  const handleShowForm = () => setShowForm(true);
+  const handleHideForm = () => setShowForm(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
 
   useEffect(() => {
     fetchMyBids();
@@ -168,7 +203,11 @@ function ProfilePage() {
     fetchWinningBids();
   }, [refresh]);
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (loading) return   
+      <div className='flex flex-col justify-center items-center h-screen text-4xl text-center font-bold'>
+        <div className='p-4'>Loading...</div>
+        <img alt="Loading" src='https://i.pinimg.com/originals/f2/9f/02/f29f025c9ff5297e8083c52b01f1a709.gif' />
+      </div>;
   if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
 
   const renderProfileStats = () => {
@@ -240,6 +279,59 @@ function ProfilePage() {
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage(null)
+
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('category', formData.category)
+      formDataToSend.append('description', formData.description)
+      formDataToSend.append('startingPrice', formData.startPrice)
+      formDataToSend.append('minimumBidIncrement', formData.minBid)
+
+      formData.images.forEach(image => {
+        formDataToSend.append('image', image)
+      })
+
+      const response = await fetch('http://localhost:3111/api/v1/auction', {
+        method: 'POST',
+        body: formDataToSend,
+        credentials: 'include'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาด')
+
+      setMessage({ type: 'success', text: 'สร้างการประมูลสำเร็จ!' })
+      setTimeout(() => router.push('/page/profile'), 2000)
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files)
+
+    if (files.length + formData.images.length > 5) {
+      setMessage({ type: 'error', text: 'สามารถอัปโหลดรูปภาพได้ไม่เกิน 5 รูป' })
+      return
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...files]
+    }))
+
+    const previewURLs = files.map(file => URL.createObjectURL(file))
+    setPreviewImages(prev => [...prev, ...previewURLs])
+  }
+
   return (
     <div>
       <NavbarProfile />
@@ -256,27 +348,86 @@ function ProfilePage() {
             <div className="flex-1">
               <div className="flex items-center space-x-4">
                 <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
-                  {profile?.profile?.name || 'Not specified'}
+                  {profile?.name || 'Not specified'}
                 </h1>
               </div>
-              <p className="text-gray-500">Email : {profile?.email || 'Not specified'}</p>
-              <p className="text-gray-500">Phone : {profile?.phone || 'Not specified'}</p>
+              <p className="text-gray-500 pl-6">Email : {profile?.email || 'Not specified'}</p>
+              <p className="text-gray-500 pl-6">Phone : {profile?.phone || 'Not specified'}</p>
               <div className='mt-2 '>
                 <Link href="/page/editprofile">
                   <button className="bg-gradient-to-tr from-yellow-500 to-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600 transition-all">
                     Edit profile
                   </button>
                 </Link>
-              </div>  
+              </div>
+              <div className='mt-2 '>
+                <button onClick={handleShowForm} className="bg-gradient-to-tr from-yellow-500 to-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600 transition-all">
+                  Create Auction
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Personal Information */}
+          {showForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+              <div className="bg-white rounded-lg shadow p-6 space-y-6 w-full max-w-2xl mx-auto relative">
+                <button onClick={handleHideForm} className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2">✕</button>
+                <h1 className="text-2xl font-bold mb-6">Create Auction</h1>
+
+                <form onSubmit={handleSubmit}>
+                  {message && (
+                    <div className={`p-3 mb-4 text-sm rounded-lg ${message.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {message.text}
+                    </div>
+                  )}
+
+                  <Input label="Product Name" type="text" name="name" value={formData.name} onChange={handleChange} required />
+                  <Input label="Description" type="textarea" name="description" value={formData.description} onChange={handleChange} required />
+                  <Input label="StartingPrice" type="text" name="startPrice" value={formData.startPrice} onChange={handleChange} required />
+                  <Input label="MinimumBidIncrement" type="text" name="minBid" value={formData.minBid} onChange={handleChange} required />
+
+                  {/* อัปโหลดรูปภาพ */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product image (Max 5 image)</label>
+                    <input type="file" multiple onChange={handleImageChange} accept="image/*" className="w-full p-2 border rounded-lg" />
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {previewImages.map((src, index) => (
+                        <div key={index} className="relative">
+                          <img src={src} alt="Preview" className="w-full h-20 object-cover rounded-lg border" />
+                          <button type="button" className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs" onClick={() => handleRemoveImage(index)}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* หมวดหมู่สินค้า */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded-lg">
+                      <option value="">Category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button type="submit" className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50" disabled={loading}>
+                      {loading ? 'Creating...' : 'Create Now!'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* 🔥 Personal Information */}
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-4">Personal information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <p className="text-gray-600">Phone number: {profile?.phone || 'Not specified'}</p>
+                <p className="text-gray-600 pl-6">- Phone number | {profile?.phone || 'ไม่ระบุ'}</p>
+                <p className="text-gray-600 pl-6">- Address | {profile?.address || 'ไม่ระบุ'}</p>
               </div>
             </div>
           </div>
@@ -287,21 +438,18 @@ function ProfilePage() {
               className={`p-4 rounded-lg ${selectedStat === 'wonAuctions' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'}`}
               onClick={() => setSelectedStat('wonAuctions')}
             >
-              {/* <p className="text-xl font-bold text-blue-600">{profile?.wonAuctions || 0}</p> */}
               Winning bid
             </button>
             <button
               className={`p-4 rounded-lg ${selectedStat === 'participatedAuctions' ? 'bg-green-100 border-2 border-green-500' : 'bg-gray-50'}`}
               onClick={() => setSelectedStat('participatedAuctions')}
             >
-              {/* <p className="text-xl font-bold text-green-600">{profile?.participatedAuctions || 0}</p> */}
               Auction history
             </button>
             <button
               className={`p-4 rounded-lg ${selectedStat === 'listedItems' ? 'bg-purple-100 border-2 border-purple-500' : 'bg-gray-50'}`}
               onClick={() => setSelectedStat('listedItems')}
             >
-              {/* <p className="text-xl font-bold text-purple-600">{profile?.listedItems || 0}</p> */}
               Create auction
             </button>
           </div>

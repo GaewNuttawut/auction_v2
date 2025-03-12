@@ -3,8 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSession } from 'next-auth/react';
-import { FaCheckCircle, FaExclamationTriangle, FaInfo, FaClock } from 'react-icons/fa';
+import { FaCheckCircle, FaExclamationTriangle, FaBell, FaClock, FaInfo } from 'react-icons/fa'
+import { colors } from '@mui/material';
 
+const API_URL = "http://localhost:3111/api/v1";
 
 const NavbarCustomer = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -17,6 +19,12 @@ const NavbarCustomer = () => {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const notificationRef = useRef(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -84,7 +92,6 @@ const NavbarCustomer = () => {
       console.error('Error logging out:', error);
     }
   };
-    const [searchText, setSearchText] = React.useState("")
 
   useEffect(() => {
     setMounted(true);
@@ -118,53 +125,9 @@ const NavbarCustomer = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-    // Add new state for notification dropdown
-    const [notificationOpen, setNotificationOpen] = useState(false)
-    const notificationRef = useRef(null)
   
     // Add new state for expanded view
     const [showAllNotifications, setShowAllNotifications] = useState(false)
-  
-    // Add more notifications data
-    const notifications = [
-      {
-        id: 1,
-        type: 'success',
-        message: 'LAZBOY_10T-554 Dreamtime (Half Leather)',
-        time: '2 นาทีที่แล้ว',
-        icon: 'check'
-      },
-      // {
-      //   id: 2,
-      //   type: 'warning',
-      //   message: 'มีผู้ประมูลสูงกว่าคุณ Figma Nendoroid',
-      //   time: '5 นาทีที่แล้ว',
-      //   icon: 'warning'
-      // },
-      {
-        id: 3,
-        type: 'info',
-        message: 'การประมูล P33-554 Dreamtime จะสิ้นสุดในอีก 30 นาที',
-        time: '15 นาทีที่แล้ว',
-        icon: 'clock'
-      },
-      // More notifications...
-      {
-        id: 4,
-        type: 'success',
-        message: 'P33-554 Dreamtime',
-        time: '1 ชั่วโมงที่แล้ว',
-        icon: 'check'
-      },
-      {
-        id: 5,
-        type: 'info',
-        message: 'มีสินค้าใหม่ในหมวดหมู่ที่คุณสนใจ',
-        time: '2 ชั่วโมงที่แล้ว',
-        icon: 'info'
-      }
-    ]
   
     useEffect(() => {
       const handleClickOutside = (event) => {
@@ -233,6 +196,79 @@ const NavbarCustomer = () => {
         setItems(data.items);
       } catch (err) {
         console.error('Error fetching items:', err);
+      }
+    };
+
+    const handleSearch = async (query) => {
+      try {
+        const response = await fetch(`http://localhost:3111/api/v1/search?query=${query}`, {
+          credentials: 'include'
+        });
+    
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`Failed to fetch search results: ${errorData.message}`);
+        }
+    
+        const data = await response.json();
+        setSearchResults(data.results);
+      } catch (err) {
+        console.error('Error fetching search results:', err);
+      }
+    };
+
+    useEffect(() => {
+      const fetchNotifications = async () => {
+        try {
+          const response = await fetch(`${API_URL}/auction/notifications`, { credentials: 'include' });
+          const data = await response.json();
+          if (data.status === 'success') {
+            setNotifications(data.data);
+            setUnreadCount(data.data.filter(n => !n.read).length);
+          }
+        } catch (err) {
+          console.error("Error fetching notifications", err);
+        }
+      };
+  
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 10000);
+      return () => clearInterval(interval);
+    }, []);
+  
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+          setNotificationOpen(false);
+        }
+      };
+  
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+  
+    const markAllAsRead = async () => {
+      setUnreadCount(0);
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      await fetch(`${API_URL}/auction/notifications/read-all`, {
+        method: "POST",
+        credentials: 'include'
+      });
+    };
+
+    const handleNotificationClick = (notification) => {
+      if (notification.type === 'time_warning' || notification.type === 'auction_end') {
+        // Navigate to the auction page
+        router.push(`/page/bid/${notification.auction.id}`);
+      } else if (notification.type === 'auction_won') {
+        // Navigate to the payment page
+        router.push(`/page/payment/${notification.auctionId}`);
+      } else if (notification.type === 'higher_bid') {
+        // Navigate to the auction page for higher bid
+        router.push(`/page/bid/${notification.auctionId}`);
+      } else {
+        // Default navigation (if any)
+        router.push(`/page/bid/${notification.id}`);
       }
     };
 
@@ -311,29 +347,11 @@ const NavbarCustomer = () => {
             placeholder='ค้นหาสินค้า'
             className='border-2 border-gray-300 p-2 rounded-lg md:w-96'
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              handleSearch(e.target.value);
+            }}
           />
-          {/* <div className="relative" ref={categoriesRef}>
-            <button 
-              className="bg-gradient-to-tr from-yellow-400 to-red-300 px-4 py-2 rounded-lg hover:bg-yellow-500 hover:text-white cursor-pointer"
-              onClick={() => setCategoriesOpen(!categoriesOpen)}
-            >
-              Categories
-            </button>
-            {categoriesOpen && (
-              <div className="absolute mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg">
-                {categories.map((category) => (
-                  <div 
-                    key={category.id} 
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleCategoryClick(category.id)}
-                  >
-                    {category.name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div> */}
         </div>
 
         {/* icon contact////////////////////////////////////////////////// */}
@@ -358,72 +376,64 @@ const NavbarCustomer = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
             </svg>
           </div> */}
+          
           {/* Notification Bell */}
           <div className="relative flex items-center" ref={notificationRef}>
-                  <button 
-                    className="bg-gradient-to-tr from-yellow-400 to-red-300 px-4 py-2 rounded-full flex items-center hover:bg-yellow-500 hover:text-white cursor-pointer"
-                    onClick={() => setNotificationOpen(!notificationOpen)}
-                  >
-                    <div className="relative">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-7">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-                      </svg>
-                      {/* Notification Badge */}
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        4
-                      </span>
-                    </div>
-                  </button>
+              <button 
+                className="relative hover:text-gray-200"
+                onClick={() => setNotificationOpen(!notificationOpen)}
+              >
+                <FaBell className='bg-gradient-to-tr from-yellow-500 to-red-400 rounded-full '  style={{ fontSize: 60, color: '#6f2f21' , padding: '10px'}}/>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
 
-                  {/* Notification Dropdown */}
-                  {notificationOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50">
-                      <div className="p-4 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-800">Notifications</h3>
-                      </div>
-                      
-                      {/* Notification Items */}
-                      <div className="divide-y divide-gray-200">
-                        {notifications.slice(0, showAllNotifications ? notifications.length : 3).map(notification => (
-                          <div 
-                            key={notification.id} 
-                            className="p-4 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => {
-                              if (notification.type === 'success') {
-                                window.location.href = '/page/cart';
-                              }
-                            }}
-                          >
-                            <div className="flex items-start">
-                              <div className="flex-shrink-0">
-                                {notification.icon === 'clock' ? (
-                                  <FaClock className="h-6 w-6 text-purple-500" />
-                                ) : notification.type === 'success' ? (
-                                  <FaCheckCircle className="h-6 w-6 text-green-500" />
-                                ) : notification.type === 'warning' ? (
-                                  <FaExclamationTriangle className="h-6 w-6 text-yellow-500" />
-                                ) : notification.type === 'info' ? (
-                                  <FaInfo className="h-6 w-6 text-blue-500" />
-                                ) : null}
-                              </div>
-                              <div className="ml-3">
-                                <p className="text-sm text-gray-800">{notification.message}</p>
-                                <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                              </div>
+              {/* Notification Dropdown */}
+              {notificationOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="p-4 border-b border-gray-200 flex justify-between">
+                    <h3 className="text-lg font-semibold text-gray-800">Notifications</h3>
+                    <button onClick={markAllAsRead} className="text-blue-600 text-sm">Read all</button>
+                  </div>
+
+                  {/* Notification Items */}
+                  <div className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="text-center text-gray-500 p-4">No notifications</p>
+                    ) : (
+                      notifications.map((notification, index) => (
+                        <div 
+                          key={notification.id || index} 
+                          className="p-4 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0">
+                              {notification.type === 'time_warning' ? (
+                                <FaClock className="h-6 w-6 text-purple-500" />
+                              ) : notification.type === 'auction_end' ? (
+                                <FaCheckCircle className="h-6 w-6 text-green-500" />
+                              ) : notification.type === 'higher_bid' ? (
+                                <FaExclamationTriangle className="h-6 w-6 text-red-500" />
+                              ) : (
+                                <FaInfo className="h-6 w-6 text-blue-500" />
+                              )}
+                            </div>
+                            <div className="ml-3">
+                              <p className="text-sm text-gray-800">{notification.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">{new Date(notification.timestamp).toLocaleTimeString()}</p>
                             </div>
                           </div>
-                        ))}
-                      </div>
-
-                      {/* View All Link */}
-                      <div className="p-4 text-center border-t border-gray-200">
-                        <button onClick={() => setShowAllNotifications(!showAllNotifications)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                          {showAllNotifications ? 'แสดงน้อยลง' : 'ดูการแจ้งเตือนทั้งหมด'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
+              )}
+          </div>
         </div>
       </div>
     </nav>
