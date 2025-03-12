@@ -342,7 +342,7 @@ function ProfilePage() {
               <img 
                 src={profileImage || "/image/profile1.jpg"}
                 alt="Profile"
-                className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-gray-300"
+                className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-gray-300 hover:scale-125"
               />
             </div>
             <div className="flex-1">
@@ -351,22 +351,27 @@ function ProfilePage() {
                   {profile?.name || 'Not specified'}
                 </h1>
               </div>
-              <p className="text-gray-500 pl-6">Email : {profile?.email || 'Not specified'}</p>
-              <p className="text-gray-500 pl-6">Phone : {profile?.phone || 'Not specified'}</p>
-              <div className='mt-2 '>
-                <Link href="/page/editprofile">
-                  <button className="bg-gradient-to-tr from-yellow-500 to-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600 transition-all">
-                    Edit profile
+              <p className="text-gray-500 pl-6">📩 : {profile?.email || 'Not specified'}</p>
+              <p className="text-gray-500 pl-6">📞 : {profile?.phone || 'Not specified'}</p>
+              <p className="text-gray-600 pl-6">📍 : {profile?.address || 'ไม่ระบุ'}</p>
+              <div className='mt-2 flex space-x-4'>
+                <div className='m-2'>
+                  <Link href="/page/editprofile">
+                    <button className="bg-gradient-to-tr from-yellow-500 to-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600 transition-all hover:scale-105">
+                      Edit profile
+                    </button>
+                  </Link>
+                </div>
+                <div className='m-2'>
+                  <button onClick={handleShowForm} className="bg-gradient-to-tr from-yellow-500 to-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600 transition-all hover:scale-105">
+                    Create Auction
                   </button>
-                </Link>
-              </div>
-              <div className='mt-2 '>
-                <button onClick={handleShowForm} className="bg-gradient-to-tr from-yellow-500 to-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600 transition-all">
-                  Create Auction
-                </button>
+                </div>
               </div>
             </div>
           </div>
+
+          <div className="border-2 border-gray-300 rounded-lg m-4"></div>
 
           {showForm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -412,7 +417,7 @@ function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end">
-                    <button type="submit" className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50" disabled={loading}>
+                    <button type="submit" className="bg-gradient-to-tr from-green-400 to-blue-400 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 m-2" disabled={loading}>
                       {loading ? 'Creating...' : 'Create Now!'}
                     </button>
                   </div>
@@ -422,32 +427,31 @@ function ProfilePage() {
           )}
 
           {/* 🔥 Personal Information */}
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Personal information</h2>
+          {/* <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4">Address 🏠</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <p className="text-gray-600 pl-6">- Phone number | {profile?.phone || 'ไม่ระบุ'}</p>
-                <p className="text-gray-600 pl-6">- Address | {profile?.address || 'ไม่ระบุ'}</p>
+                <p className="text-gray-600 pl-6">📍 : {profile?.address || 'ไม่ระบุ'}</p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Profile Stats */}
           <div className="grid grid-cols-3 gap-4 mt-6">
             <button
-              className={`p-4 rounded-lg ${selectedStat === 'wonAuctions' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'}`}
+              className={`p-4 rounded-lg ${selectedStat === 'wonAuctions' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50'} hover:scale-105 hover:bg-blue-100 hover:border-2 border-blue-500`}
               onClick={() => setSelectedStat('wonAuctions')}
             >
               Winning bid
             </button>
             <button
-              className={`p-4 rounded-lg ${selectedStat === 'participatedAuctions' ? 'bg-green-100 border-2 border-green-500' : 'bg-gray-50'}`}
+              className={`p-4 rounded-lg ${selectedStat === 'participatedAuctions' ? 'bg-green-100 border-2 border-green-500' : 'bg-gray-50'} hover:scale-105 hover:bg-green-100 hover:border-2 border-green-500`}
               onClick={() => setSelectedStat('participatedAuctions')}
             >
               Auction history
             </button>
             <button
-              className={`p-4 rounded-lg ${selectedStat === 'listedItems' ? 'bg-purple-100 border-2 border-purple-500' : 'bg-gray-50'}`}
+              className={`p-4 rounded-lg ${selectedStat === 'listedItems' ? 'bg-purple-100 border-2 border-purple-500' : 'bg-gray-50'} hover:scale-105 hover:bg-purple-100 hover:border-2 border-purple-500`}
               onClick={() => setSelectedStat('listedItems')}
             >
               Create auction
