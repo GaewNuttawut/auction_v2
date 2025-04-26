@@ -77,12 +77,12 @@ const CreateAuction = () => {
         </svg>
       </button> */}
 
-      <Modal show={show} onHide={handleClose}>
+      <Modal show={show} onHide={handleClose} >
         <Modal.Header closeButton>
           <Modal.Title>Create Auction</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit} className='ml-2 mr-2'>
+        <Modal.Body >
+          <Form onSubmit={handleSubmit} className='ml-2 mr-2 '>
             <Form.Group controlId="formProductName">
               <Form.Label className='font-bold'>Product name</Form.Label>
               <Form.Control type="text" name="name" placeholder="Enter product name" required onChange={handleChange} />

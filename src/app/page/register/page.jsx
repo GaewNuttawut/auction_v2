@@ -38,6 +38,10 @@ function RegisterPage() {
         setError("Password must be at least 6 characters long.");
         return;
       }
+      if (!password || password !== confirmpassword) {
+        setError("Passwords do not match.");
+        return;
+      }
 
       const res = await fetch(
         "http://localhost:3111/api/v1/auth/register",
@@ -120,6 +124,7 @@ function RegisterPage() {
               name="phone"
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               placeholder="phone number"
+              maxLength="10"
             />
           </div>
 

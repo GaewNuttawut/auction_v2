@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "UFA99 Auction",
+  title: "NutKan Auction",
   description: "Furniture auction website and sell furniture",
 };
 

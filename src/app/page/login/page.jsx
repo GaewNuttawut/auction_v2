@@ -15,25 +15,44 @@ function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setError('');
+  
+    if (!email || (!email.includes("@") && email !== 'admin')) {
+      return setError('กรุณากรอกอีเมลให้ถูกต้อง หรือใช้ชื่อ admin');
+    }
+  
+    if (!password || password.length < 6) {
+      return setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+    }
+  
+    // ✅ แยก admin login
+    if (email === 'admin' && password === 'admin1234') {
+      router.push('/page/admin');
+      return;
+    }
+
     try {
       const res = await fetch('http://localhost:3111/api/v1/auth/login', {
         method: 'POST',
-        credentials: "include", // ✅ ต้องเปิดให้ Cookies ถูกแนบไปด้วย
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           "BusinessId": "1234567890",
           "device-fingerprint" : "unique-device-123456",
         },
         body: JSON.stringify({ email, password }),
-      })
-      if (res.status === 200) {
-        window.location.href = '/page/homepage';
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        router.push('/page/homepage');
       } else {
-        throw new Error(await res.text())
+        setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }
-    } catch (error) {
-      setError(error.message)
+    } catch (err) {
+      console.error('Login Error:', err);
+      setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -92,12 +111,11 @@ function LoginPage() {
 
           <div className="flex items-center justify-between">
             <button
-              href="/page/homepage"
               type="submit"
               disabled={!isFormValid() || isLoading}
               className="bg-gradient-to-tr from-red-500 to-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
-              Login
+              {isLoading ? 'Logging in...' : 'Login'}
             </button>
             <div>
               <a

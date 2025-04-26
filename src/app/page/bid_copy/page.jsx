@@ -30,6 +30,8 @@ function ProductDetailsPage() {
   const [images, setImages] = useState([]); // เก็บรูปภาพสินค้าแบบ array
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showAlert, setShowAlert] = useState(false); // State สำหรับควบคุม Modal
+  const [alertMessage, setAlertMessage] = useState(""); // ข้อความแจ้งเตือน
 
   const id = searchParams.get('id');
   const name = searchParams.get('name');
@@ -38,61 +40,54 @@ function ProductDetailsPage() {
   const prices = searchParams.get('prices');
   const expiresAt = searchParams.get('expiresAt');
 
-  // // 📌 ตรวจสอบการเข้าสู่ระบบ
-  // useEffect(() => {
-  //   const checkLoginStatus = async () => {
-  //     try {
-  //       const response = await fetch('http://localhost:3111/api/v1/auth/check', {
-  //         method: 'GET',
-  //         credentials: 'include',
-  //       });
-  //       if (!response.ok) {
-  //         router.push('/page/login'); // Redirect to login page if not logged in
-  //       }
-  //     } catch (err) {
-  //       router.push('/page/login'); // Redirect to login page if error occurs
-  //     }
-  //   };
+  // ฟังก์ชันสำหรับแสดง Modal
+  const showAlertModal = (message) => {
+    setAlertMessage(message);
+    setShowAlert(true);
+  };
 
-  //   checkLoginStatus();
-  // }, [router]);
+  // ฟังก์ชันสำหรับปิด Modal
+  const closeAlertModal = () => {
+    setShowAlert(false);
+    setAlertMessage("");
+  };
 
-  // // 📌 ตรวจสอบการเข้าสู่ระบบ
-  // useEffect(() => {
-  //   const checkLoginStatus = async () => {
-  //     try {
-  //       const response = await fetch('http://localhost:3111/api/v1/auth/check', {
-  //         method: 'GET',
-  //         credentials: 'include',
-  //       });
-  //       if (!response.ok) {
-  //         toast.error(
-  //           <div>
-  //             กรุณาเข้าสู่ระบบ
-  //             <div>
-  //               <button onClick={() => router.push('/page/login')} className="bg-red-500 text-white py-1 px-2 rounded mt-2">
-  //                 ยืนยัน
-  //               </button>
-  //             </div>
-  //           </div>
-  //         );
-  //       }
-  //     } catch (err) {
-  //       toast.error(
-  //         <div>
-  //           กรุณาเข้าสู่ระบบ
-  //           <div>
-  //             <button onClick={() => router.push('/page/login')} className="bg-red-500 text-white py-1 px-2 rounded mt-2">
-  //               ยืนยัน
-  //             </button>
-  //           </div>
-  //         </div>
-  //       );
-  //     }
-  //   };
+  // 📌 ตรวจสอบการเข้าสู่ระบบ
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const response = await fetch('http://localhost:3111/api/v1/auth/check', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          toast.error(
+            <div>
+              กรุณาเข้าสู่ระบบ
+              <div>
+                <button onClick={() => router.push('/page/login')} className="bg-red-500 text-white py-1 px-2 rounded mt-2">
+                  ยืนยัน
+                </button>
+              </div>
+            </div>
+          );
+        }
+      } catch (err) {
+        toast.error(
+          <div>
+            กรุณาเข้าสู่ระบบ
+            <div>
+              <button onClick={() => router.push('/page/login')} className="bg-red-500 text-white py-1 px-2 rounded mt-2">
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        );
+      }
+    };
 
-  //   checkLoginStatus();
-  // }, [router]);
+    checkLoginStatus();
+  }, [router]);
 
   // 📌 ดึงข้อมูลสินค้าจาก API
   useEffect(() => {
@@ -166,7 +161,7 @@ function ProductDetailsPage() {
   // 📌 ฟังก์ชันสำหรับการประมูล
   const handleBid = async () => {
     if (!bidAmount || bidAmount < currentPrice + minimumBidIncrement) {
-      alert(`กรุณาใส่ราคาที่มากกว่าหรือเท่ากับ ${currentPrice + minimumBidIncrement} บาท`);
+      showAlertModal(`กรุณาใส่ราคาที่มากกว่าหรือเท่ากับ ${currentPrice + minimumBidIncrement} บาท`);
       return;
     }
 
@@ -179,22 +174,12 @@ function ProductDetailsPage() {
       });
       const data = await response.json();
       if (data.status === 'success') {
-        toast.success(
-          <div>
-            Successful bid!
-            <div>
-              <button onClick={() => window.location.reload()} className="bg-green-500 text-white py-1 px-2 rounded mt-2">
-                Confirm
-              </button>
-            </div>
-          </div>
-        );
-        // window.location.reload();
+        showAlertModal("Successful bid!");
       } else {
-        alert(data.message);
+        showAlertModal(`กรุณาเข้าสู่ระบบก่อนประมูล`);
       }
     } catch (err) {
-      alert('เกิดข้อผิดพลาด!');
+      showAlertModal("เกิดข้อผิดพลาด!");
     }
   };
 
@@ -220,6 +205,10 @@ function ProductDetailsPage() {
     setBidAmount(currentPrice.toFixed(2));
   }, [currentPrice]);
 
+  useEffect(() => {
+    // ตั้งค่า bidAmount เป็นยอดปัจจุบัน + ยอดบิดขั้นต่ำ
+    setBidAmount((currentPrice + minimumBidIncrement).toFixed(2));
+  }, [currentPrice, minimumBidIncrement]);
 
   // 📌 ฟังก์ชันเปลี่ยนรูปภาพ
   const nextImage = () => {
@@ -259,15 +248,19 @@ function ProductDetailsPage() {
                 <>
                   <button
                     onClick={prevImage}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-600/50 hover:bg-gray-600 text-white p-2 rounded-full transition-colors duration-200"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-tr from-yellow-500 to-red-400 hover:bg-gray-600 text-white p-2 rounded-full transition-colors duration-200"
                   >
-                    ◀
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 9-3 3m0 0 3 3m-3-3h7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
                   </button>
                   <button
                     onClick={nextImage}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-600/50 hover:bg-gray-600 text-white p-2 rounded-full transition-colors duration-200"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-tr from-green-500 to-blue-400 hover:bg-gray-600 text-white p-2 rounded-full transition-colors duration-200"
                   >
-                    ▶
+                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m12.75 15 3-3m0 0-3-3m3 3h-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
                   </button>
                 </>
               )}
@@ -285,8 +278,8 @@ function ProductDetailsPage() {
                     }}
                     className={`relative rounded-lg overflow-hidden border-2 transition-all ${
                       selectedImage === img 
-                        ? 'border-yellow-500 shadow-lg scale-105' 
-                        : 'border-gray-200 hover:border-pink-300'
+                        ? 'border-red-500 shadow-lg scale-105' 
+                        : 'border-gray-200 hover:border-yellow-400'
                     }`}
                   >
                     <div className="aspect-square">
@@ -355,7 +348,7 @@ function ProductDetailsPage() {
                     className="w-50 p-2 border rounded"
                     value={bidAmount}
                     onChange={(e) => setBidAmount(e.target.value)}
-                    min={price}
+                    min={currentPrice + minimumBidIncrement}
                   />
                   <button onClick={handleIncrementBid} className="bg-[#00FF00] hover:bg-green-400 text-black font-bold py-2 px-4 rounded">
                     +
@@ -413,6 +406,21 @@ function ProductDetailsPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal สำหรับแจ้งเตือน */}
+      {showAlert && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
+            <p className="text-lg font-semibold">{alertMessage}</p>
+            <button
+              onClick={closeAlertModal}
+              className="mt-4 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+            >
+              ปิด
+            </button>
           </div>
         </div>
       )}

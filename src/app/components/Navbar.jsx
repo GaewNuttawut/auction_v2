@@ -5,6 +5,21 @@ import { useRouter } from 'next/navigation';
 import { signOut, getSession } from 'next-auth/react';
 import axios from 'axios';
 
+const API_URL = "http://localhost:3111/api/v1";
+
+const categories = [
+  { key: "chair", name: "Chair" },
+  { key: "sofas_and_armchairs", name: "Sofas and armchairs" },
+  { key: "table", name: "Table" },
+  { key: "cupboard", name: "Cupboard" },
+  { key: "bad", name: "Bad" },
+  { key: "counter", name: "Counter" },
+  { key: "office_furniture", name: "Office furniture" },
+  { key: "Kitchenware_and_freezer", name: "Kitchenware and freezer" },
+  { key: "door", name: "Door" },
+  { key: "home_decoration", name: "Home decoration" },
+];
+
 const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -12,6 +27,9 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const router = useRouter();
   const [token, setToken] = useState(null); // เพิ่ม state สำหรับ token
+  const [searchText, setSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
     // Fetch user and token from local storage or API
@@ -21,6 +39,38 @@ const Navbar = () => {
     setToken(storedToken);
   }, []);
 
+
+  useEffect(() => {
+    if (searchText.trim() === "") {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchSearchResults();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  const fetchSearchResults = async () => {
+    try {
+      const response = await fetch(`${API_URL}/auction/search?name=${encodeURIComponent(searchText)}`);
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setSearchResults(data.data);
+      } else {
+        setSearchResults([]);
+      }
+      setHasSearched(true);
+    } catch (error) {
+      console.error("❌ เกิดข้อผิดพลาดในการค้นหา:", error);
+      setSearchResults([]);
+      setHasSearched(true);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -140,7 +190,7 @@ const Navbar = () => {
                 )}
                 <div className="flex items-center space-x-4">
                   <Link href="/" legacyBehavior>
-                    <a className="text-black text-3xl font-bold hover:scale-125 hover:text-yellow-400 underline decoration-double">UFA99</a>
+                    <a className="text-black text-3xl font-bold hover:scale-125 hover:text-yellow-400 underline decoration-double">NutKan</a>
                   </Link>
                 </div>
               </div>
@@ -152,7 +202,32 @@ const Navbar = () => {
               type="text" 
               placeholder='ค้นหาสินค้า'
               className='border-2 border-gray-300 p-2 rounded-lg w-96'
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
             />
+            {hasSearched && (
+              <div ref={dropdownRef} className="absolute w-80 bg-white shadow-lg rounded-lg top-16 z-10 max-h-80 overflow-y-auto border border-4 border-yellow-400">
+                {searchResults.length > 0 ? (
+                  <ul>
+                    {searchResults.map((item) => (
+                      <li key={item._id} className="p-2 pl-3 border-b flex items-center cursor-pointer hover:bg-gray-100 transition hover:bg-gradient-to-tr from-yellow-500 to-red-400">
+                        <img
+                          src={item.image?.length > 0 ? item.image[0] : "/default-image.jpg"}
+                          alt={item.name}
+                          className="w-10 h-10 mr-3 rounded border"
+                          onError={(e) => e.target.src = "/default-image.jpg"}
+                        />
+                        <Link href={`/page/bid_copy/${item._id}`} className="flex-1 text-gray-700 hover:text-white p-2 rounded-lg">
+                          {item.name} - ราคา: {item.currentPrice} บาท
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 p-2 text-center">❌ ไม่พบสินค้าที่ตรงกับ "{searchText}"</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* icon contact////////////////////////////////////////////////// */}

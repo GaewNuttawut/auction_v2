@@ -91,45 +91,6 @@ function EditProfilePage() {
       console.error('❌ Error updating profile:', error)
     }
   }
-
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-    
-  //   console.log("📩 Sending Data:", formData); // ✅ Debug formData ก่อนส่ง
-  
-  //   try {
-  //     // 🔹 อัปเดตข้อมูลโปรไฟล์
-  //     const profileUpdateResponse = await fetch('http://localhost:3111/api/v1/profile', {
-  //       method: 'PUT',
-  //       credentials: 'include',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify(formData),
-  //     });
-  
-  //     if (!profileUpdateResponse.ok) throw new Error('Failed to upload image.');
-  
-  //     // 🔹 อัปโหลดรูปโปรไฟล์ (ถ้ามีการเปลี่ยนรูป)
-  //     if (profileImage) {
-  //       const formDataToSend = new FormData();
-  //       formDataToSend.append('image', profileImage);
-  
-  //       const uploadResponse = await fetch('http://localhost:3111/api/v1/profile/upload', {
-  //         method: 'POST',
-  //         credentials: 'include',
-  //         body: formDataToSend,
-  //       });
-  
-  //       if (!uploadResponse.ok) throw new Error('Failed to upload image.');
-  //     }
-  
-  //     router.push('/page/profile'); // 🔄 กลับไปหน้าโปรไฟล์
-  //   } catch (error) {
-  //     console.error('Error updating profile:', error);
-  //   }
-  // };
-  
-  
-
   return (
     <div className="bg-gray-100 min-h-screen">
       <NavbarEditProfile />
@@ -175,18 +136,6 @@ function EditProfilePage() {
                   value={formData.phone}
                   onChange={handleInputChange}
                 />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-1">Address</label>
-                <textarea 
-                  name="address"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  rows="3"
-                  placeholder="Address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                ></textarea>
               </div>
             </div>
 

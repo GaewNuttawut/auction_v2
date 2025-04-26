@@ -13,8 +13,35 @@ import ScrollToTop from '../../components/ScolltoTop'
 import ButtonMainCustomer from '../../components/ButtonMainCustomer'
 import CreateAuction from '../../components/CreateAuction';
 import Category from '../../components/Category';
+import NutKan2 from '../../../../public/images/NutKan2.png';
 
 function HomePage() {
+
+  // // filepath: [page.jsx](http://_vscodecontentref_/2)
+  // useEffect(() => {
+  //   const interval = setInterval(async () => {
+  //     try {
+  //       const response = await fetch(`${apiUrl}/check-updates`);
+  //       if (!response.ok) {
+  //         if (response.status === 404) {
+  //           console.error("Error: Endpoint not found (404)");
+  //         } else {
+  //           console.error(`Error: ${response.status} ${response.statusText}`);
+  //         }
+  //         return;
+  //       }
+  //       const data = await response.json();
+  //       if (data.updated) {
+  //         window.location.reload(); // รีเฟรชหน้าจอ
+  //       }
+  //     } catch (error) {
+  //       console.error("Error checking updates:", error);
+  //     }
+  //   }, 5000); // เช็คทุก ๆ 5 วินาที
+  
+  //   return () => clearInterval(interval); // ล้าง interval เมื่อ component ถูก unmount
+  // }, [apiUrl]);
+  
   return (
     <div className="min-h-screen p-0 m-0 font-[family-name:var(--font-geist-sans)] bg-[#333333] md:p-0">
         <div>
@@ -23,7 +50,7 @@ function HomePage() {
         <div className="pt-16">
             <div className="flex flex-col items-center gap-4 pt-8 mx-0">
                 <Image 
-                    src={logo}
+                    src={NutKan2}
                     width={400}
                     height={300}
                     alt="logo"
@@ -46,7 +73,7 @@ function HomePage() {
             <ContactPage />
           </div>
           <div>
-            <Category/>
+            {/* <Category/> */}
           </div>
           {/* <div>
             <CreateAuction />

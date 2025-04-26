@@ -28,6 +28,9 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [popupMessage, setPopupMessage] = useState("");
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+
 
   const handlePasswordChange = (e) => {
     const value = e.target.value;
@@ -38,8 +41,15 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
+    if (password !== confirmPassword) {
+      setPopupMessage("❌ Passwords do not match. Please try again.");
+      setIsPopupVisible(true);
+      return;
+    }
+  
     if (!token || token === "undefined" || token === "null") {
-      toast.error("❌ ไม่พบ Token กรุณาลองใหม่");
+      setPopupMessage("❌ ไม่พบ Token กรุณาลองใหม่");
+      setIsPopupVisible(true);
       return;
     }
   
@@ -49,13 +59,20 @@ export default function ResetPassword() {
         newPassword: password,
       });
   
-      toast.success("Your password has been changed. Please log in again.");
+      setPopupMessage("✅ Your password has been changed. Please log in again.");
+      // setIsPopupVisible(true);
+
       setTimeout(() => {
         router.push("/page/login");
       }, 3000);
     } catch (err) {
-      toast.error("❌ " + (err.response?.data?.message || "เกิดข้อผิดพลาด"));
+      setPopupMessage("❌ " + (err.response?.data?.message || "เกิดข้อผิดพลาด"));
+      setIsPopupVisible(true);
     }
+  };
+
+  const closePopup = () => {
+    setIsPopupVisible(false);
   };
 
   return (
@@ -63,7 +80,19 @@ export default function ResetPassword() {
       className="flex flex-col items-center justify-center min-h-screen py-2 bg-cover bg-center"
       style={{ backgroundImage: "url('/images/sp.jpg')" }}
     >
-      <ToastContainer />
+      {isPopupVisible && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+            <p className="text-lg font-semibold mb-4">{popupMessage}</p>
+            <button
+              onClick={closePopup}
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md bg-opacity-70 backdrop-blur-lg"
@@ -107,7 +136,6 @@ export default function ResetPassword() {
         >
           Reset Password
         </button>
-        {message && <p className="mt-4 text-center text-red-500">{message}</p>}
       </form>
     </div>
   );

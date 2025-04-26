@@ -100,9 +100,9 @@ function CreateAuctionPage() {
 
       const result = await response.json()
 
-      if (!response.ok) throw new Error(result.message || 'เกิดข้อผิดพลาด')
+      if (!response.ok) throw new Error(result.message || 'An error occurred.')
 
-      setMessage({ type: 'success', text: 'สร้างการประมูลสำเร็จ!' })
+      setMessage({ type: 'success', text: 'Auction created successfully!' })
       setTimeout(() => router.push('/my-auctions'), 2000)
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
@@ -114,7 +114,7 @@ function CreateAuctionPage() {
   return (
     <div>
       <NavbarCreateauction />
-      <div className="container mx-auto px-4 py-8 pt-20">
+      <div className="container mx-auto px-4 py-8 pt-20 mt-10">
         <h1 className="text-2xl font-bold mb-6">สร้างการประมูล</h1>
 
         <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">

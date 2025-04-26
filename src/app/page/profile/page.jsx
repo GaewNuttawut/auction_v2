@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import Input from '../../components/Input';
 
+
+
 const API_URL = "http://localhost:3111/api/v1";
 const socket = io("http://localhost:3111");
 
@@ -32,6 +34,7 @@ function ProfilePage() {
   const [myWinningBids, setMyWinningBids] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState(null); // Define the message state
+  const [timeLeft, setTimeLeft] = useState({})
   const categories = [
     { id: "chair", name: "Chair" },
     { id: "sofas_and_armchairs", name: "Sofas and armchairs" },
@@ -57,6 +60,13 @@ function ProfilePage() {
   const handleShowForm = () => setShowForm(true);
   const handleHideForm = () => setShowForm(false);
 
+  const handleCheckPayment = (auctionId) => {
+    router.push(`/page/check-payment?auctionId=${auctionId}`);
+  };
+  const handlePayment = (auctionId) => {
+    router.push(`/page/payment?auctionId=${auctionId}`);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -64,6 +74,36 @@ function ProfilePage() {
       [name]: value,
     }));
   };
+
+  useEffect(() => {
+    const calculateTimeLeft = (endTime) => {
+      const difference = new Date(endTime) - new Date();
+      let timeLeft = {};
+  
+      if (difference > 0) {
+        timeLeft = {
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        };
+      }
+  
+      return timeLeft;
+    };
+  
+    const updateAuctionTimes = () => {
+      setMyCreatedAuctions((prevAuctions) =>
+        prevAuctions.map((auction) => {
+          const timeLeft = calculateTimeLeft(auction.endTime);
+          return { ...auction, timeLeft };
+        })
+      );
+    };
+  
+    const intervalId = setInterval(updateAuctionTimes, 1000);
+  
+    return () => clearInterval(intervalId);
+  }, [myCreatedAuctions]);
 
   useEffect(() => {
     fetchMyBids();
@@ -157,7 +197,7 @@ function ProfilePage() {
           credentials: 'include'
         });
         
-        if (!res.ok) throw new Error("Failed to load image.");
+        // if (!res.ok) throw new Error("Failed to load image.");
 
         const data = await res.json();
         setProfileImage(data.image);
@@ -210,6 +250,7 @@ function ProfilePage() {
       </div>;
   if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
 
+ 
   const renderProfileStats = () => {
     switch (selectedStat) {
       case 'wonAuctions':
@@ -220,35 +261,43 @@ function ProfilePage() {
             </div>
             <ul className="list-disc list-inside mt-2">
               {myWinningBids.map((bid) => (
-                <li key={bid._id} className='mt-2'>
-                  {bid.auction?.name}: ฿{bid.amount}
-                  <Link href={`/page/wonAuctionsDetails/${bid.auction?._id}`}>
-                    <button className="ml-4 bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition-all">
-                      👁️
-                    </button>
-                  </Link>
-                </li>
+                <div key={bid._id} className="flex items-center space-x-4 transition-all hover:scale-125">
+                  <img 
+                    src={bid.auction?.image?.length > 0 ? bid.auction.image[0] : '/default-image.jpg'} 
+                    alt={bid.auction?.name || "Auction Image"} 
+                    className="w-16 h-16 object-cover border-4 border-blue-500 drop-shadow-md rounded-lg m-2 transition-all hover:scale-125"
+                  />
+                  <span>{bid.auction?.name} : ฿ {bid.amount}</span>
+                
+                  <button 
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                  onClick={() => handlePayment(bid.auction?._id, bid.qrCode, bid.paymentId)}
+                  >
+                  💸 ชำระเงิน
+                  </button>
+              </div>
               ))}
             </ul>
           </div>
         );
       case 'participatedAuctions':
         return (
-          <div className="bg-green-100 border-2 border-green-500 p-4 rounded-lg">
+          <div className="bg-green-100 border-2 border-green-500 p-4 rounded-lg h-full flex flex-col">
             <div className="flex items-center space-x-3">
               <h3 className="font-semibold text-xl">Details about the participated auctions...</h3>
             </div>
-            <ul className="list-disc list-inside mt-2">
+            <ul className="list-disc list-inside mt-2 flex-grow">
               {myBids.map((bid) => (
-                <li key={bid._id} className='mt-2'>
-                  {bid.auction?.name}: ฿{bid.amount}
-                  <button
-                    onClick={() => router.push(`${API_URL}/auction/${bid.auction._id}`)}
-                    className="ml-4 bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition-all"
-                  >
-                    👁️
-                  </button>
-                </li>
+                <div key={bid._id} className="flex items-center justify-between space-x-4 transition-all hover:scale-125">
+                  <div className="flex items-center space-x-4">
+                    <img 
+                      src={bid.auction?.image?.length > 0 ? bid.auction.image[0] : '/default-image.jpg'} 
+                      alt={bid.auction?.name || "Auction Image"} 
+                      className="w-16 h-16 object-cover border-4 border-green-500 drop-shadow-md rounded-lg m-2 transition-all hover:scale-125"
+                    />
+                    <span>{bid.auction?.name} : ฿ {bid.amount}</span>
+                  </div>
+                </div>
               ))}
             </ul>
           </div>
@@ -261,15 +310,25 @@ function ProfilePage() {
             </div>
             <ul className="list-disc list-inside mt-2">
               {myCreatedAuctions.map((auction) => (
-                <li key={auction._id} className='mt-2'>
-                  {auction.name}: ฿{auction.startingPrice}
-                  <button
-                    onClick={() => router.push(`${API_URL}/auction/${auction._id}`)}
-                    className="ml-4 bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition-all"
+                <div key={auction._id} className="flex items-center justify-between space-x-4 transition-all hover:scale-125">
+                  <div className="flex items-center space-x-4">
+                    <img 
+                      src={auction.image?.[0] ?? '/default-image.jpg'} 
+                      alt={auction.name ?? "Auction Image"} 
+                      className="w-16 h-16 object-cover border-4 border-purple-500 drop-shadow-md rounded-lg m-2 transition-all hover:scale-125"
+                    />
+                    <div>
+                      <h2 className="text-lg font-semibold">{auction.name}</h2>
+                      <p className="text-gray-600">ราคาปัจจุบัน: {auction.currentPrice} บาท</p>
+                    </div>
+                  </div>
+                  <button 
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                    onClick={() => handleCheckPayment(auction._id, auction.paymentId)}
                   >
-                    👁️
+                    ☑️ Check payment
                   </button>
-                </li>
+                </div>
               ))}
             </ul>
           </div>
@@ -353,7 +412,21 @@ function ProfilePage() {
               </div>
               <p className="text-gray-500 pl-6">📩 : {profile?.email || 'Not specified'}</p>
               <p className="text-gray-500 pl-6">📞 : {profile?.phone || 'Not specified'}</p>
-              <p className="text-gray-600 pl-6">📍 : {profile?.address || 'ไม่ระบุ'}</p>
+            
+              {profile?.addresses?.length === 0 && (
+                <p className="text-sm text-gray-500 mb-4">คุณยังไม่มีที่อยู่จัดส่ง 📨</p>
+              )}
+  
+            {profile?.addresses?.map((addr, index) => (
+              <div key={index} className="border border-pink-200 p-5 rounded-xl mb-4 bg-pink-50 shadow-sm pt-2 mt-2">
+                <p className="text-gray-500 pl-6"> : ที่อยู่จัดส่ง</p>
+                <p className="font-bold text-lg text-pink-600">{addr.label}</p>
+                <p className="text-sm text-gray-700">ชื่อ : {addr.name}</p>
+                <p className="text-sm text-gray-700">เบอร์โทร : {addr.phone}</p>
+                <p className="text-sm text-gray-700">ที่อยู่ : {addr.fullAddress}</p>
+  
+              </div>
+            ))}
               <div className='mt-2 flex space-x-4'>
                 <div className='m-2'>
                   <Link href="/page/editprofile">
@@ -374,8 +447,8 @@ function ProfilePage() {
           <div className="border-2 border-gray-300 rounded-lg m-4"></div>
 
           {showForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-              <div className="bg-white rounded-lg shadow p-6 space-y-6 w-full max-w-2xl mx-auto relative">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 ">
+              <div className="bg-white rounded-lg shadow p-6 space-y-6 w-full max-w-2xl mx-auto relative mt-10">
                 <button onClick={handleHideForm} className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2">✕</button>
                 <h1 className="text-2xl font-bold mb-6">Create Auction</h1>
 

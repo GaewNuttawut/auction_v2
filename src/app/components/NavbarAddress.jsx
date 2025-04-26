@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { signOut, getSession } from 'next-auth/react';
 import axios from 'axios';
 
-const NavbarBidscopy = () => {
+const NavbarAddress = () => {
   const router = useRouter();
 
   const handleBackToHome = () => {
-    router.push('/' );
+    router.push('/page/homepage' );
   };
   return (
-    <nav className="bg-gradient-to-tr from-yellow-500 to-red-400  p-3 w-full fixed top-0 left-0 right-0 shadow-lg z-10  bg-opacity-90">
+    <nav className="bg-gradient-to-tr from-yellow-500 to-red-400 p-3 w-full fixed top-0 left-0 right-0 shadow-lg z-10  bg-opacity-90">
       <div>
         <button onClick={handleBackToHome} className='flex items-center space-x-2'>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
@@ -27,4 +27,4 @@ const NavbarBidscopy = () => {
     );
   };
 
-export default NavbarBidscopy;
+export default NavbarAddress;

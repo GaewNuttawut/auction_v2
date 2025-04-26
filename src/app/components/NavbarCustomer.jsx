@@ -8,6 +8,19 @@ import { colors } from '@mui/material';
 
 const API_URL = "http://localhost:3111/api/v1";
 
+const categories = [
+  { key: "chair", name: "Chair" },
+  { key: "sofas_and_armchairs", name: "Sofas and armchairs" },
+  { key: "table", name: "Table" },
+  { key: "cupboard", name: "Cupboard" },
+  { key: "bad", name: "Bad" },
+  { key: "counter", name: "Counter" },
+  { key: "office_furniture", name: "Office furniture" },
+  { key: "Kitchenware_and_freezer", name: "Kitchenware and freezer" },
+  { key: "door", name: "Door" },
+  { key: "home_decoration", name: "Home decoration" },
+];
+
 const NavbarCustomer = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -19,12 +32,13 @@ const NavbarCustomer = () => {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
-  const [searchText, setSearchText] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const notificationRef = useRef(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [searchText, setSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -50,7 +64,7 @@ const NavbarCustomer = () => {
           credentials: 'include'
         });
 
-        if (!res.ok) throw new Error("โหลดรูปภาพไม่สำเร็จ");
+        // if (!res.ok) throw new Error("โหลดรูปภาพไม่สำเร็จ");
 
         const data = await res.json();
         setProfileImage(data.image); // ใช้ Base64 Image
@@ -272,6 +286,39 @@ const NavbarCustomer = () => {
       }
     };
 
+      useEffect(() => {
+        if (searchText.trim() === "") {
+          setSearchResults([]);
+          setHasSearched(false);
+          return;
+        }
+    
+        const timer = setTimeout(() => {
+          fetchSearchResults();
+        }, 300);
+    
+        return () => clearTimeout(timer);
+      }, [searchText]);
+    
+      const fetchSearchResults = async () => {
+        try {
+          const response = await fetch(`${API_URL}/auction/search?name=${encodeURIComponent(searchText)}`);
+          const data = await response.json();
+    
+          if (data.status === "success") {
+            setSearchResults(data.data);
+          } else {
+            setSearchResults([]);
+          }
+          setHasSearched(true);
+        } catch (error) {
+          console.error("❌ เกิดข้อผิดพลาดในการค้นหา:", error);
+          setSearchResults([]);
+          setHasSearched(true);
+        }
+      };
+    
+
   return (
     <nav className="bg-white p-2 w-full fixed top-0 left-0 right-0 rounded-bl-lg rounded-br-lg shadow-lg z-10  bg-opacity-50 backdrop-blur-xl">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
@@ -279,6 +326,7 @@ const NavbarCustomer = () => {
           <div className="flex space-x-5 pl-2">
             <div className="relative" ref={dropdownRef}>
               <button onClick={toggleDropdown} className="flex items-center focus:outline-none hover:text-yellow-400 hover:scale-125">
+                <span className="text-2xl font-medium mr-2">{profile?.name || 'ไม่ระบุ'}</span> 
                 {profileImage ? (
                   <img
                     src={profileImage || "/image/profile1.jpg"}
@@ -297,34 +345,31 @@ const NavbarCustomer = () => {
                 <div className="absolute mt-2 w-60 bg-white border border-gray-200 rounded-lg shadow-lg">
                   <Link href="/page/homepage" legacyBehavior>
                     <a className="flex items-center justify-center px-4 py-2 text-black hover:bg-gradient-to-tr from-yellow-500 to-red-400 hover:text-white rounded-lg">
-                      Home
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 ml-2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                      </svg>
+                      Home🏠
                     </a>
                   </Link>
                   <Link href="/page/profile" legacyBehavior>
                     <a className="flex items-center justify-center px-4 py-2 text-black hover:bg-gradient-to-tr from-yellow-500 to-red-400 hover:text-white rounded-lg">
-                      Account
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 ml-2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                      </svg>
+                      Account🪪
+                    </a>
+                  </Link>
+                  <Link href="/page/address" legacyBehavior>
+                    <a className="flex items-center justify-center px-4 py-2 text-black hover:bg-gradient-to-tr from-yellow-500 to-red-400 hover:text-white rounded-lg">
+                      Adress📍
                     </a>
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="flex items-center justify-center w-full px-4 py-2 text-black hover:bg-red-800 hover:text-white rounded-lg"
                   >
-                    Logout
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 ml-2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
-                    </svg>
+                    Logout☺️
                   </button>
                 </div>
               )}
+              {/* <span className="text-base font-medium ml-2 text-2xl">{profile?.name || 'ไม่ระบุ'}</span> */}
             </div>
             <Link href="/page/homepage" legacyBehavior>
-              <a className="text-black text-3xl md:text-4xl font-bold hover:text-yellow-400 hover:scale-125 underline decoration-double">UFA99</a>
+              <a className="text-black pl-6 text-3xl md:text-4xl font-bold hover:text-yellow-400 hover:scale-125 underline decoration-double">NutKan</a>
             </Link>
 
             {/* <div className='bg-gradient-to-tr from-yellow-400 to-red-300 px-3 rounded-full flex items-center hover:bg-yellow-500 hover:text-white cursor-pointer hover:scale-125'>
@@ -334,25 +379,44 @@ const NavbarCustomer = () => {
                 </svg>
               </Link>
             </div> */}
-            <div>
-
+              <div>
             </div>
           </div>
         </div>
 
         {/* input////////////////////////////////////////////////// */}
-        <div className="flex items-center space-x-4">
-          <input 
-            type="text" 
-            placeholder='ค้นหาสินค้า'
-            className='border-2 border-gray-300 p-2 rounded-lg md:w-96'
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              handleSearch(e.target.value);
-            }}
-          />
-        </div>
+        <div className="flex items-center pr-16 space-x-4">
+            <input 
+              type="text" 
+              placeholder='ค้นหาสินค้า'
+              className='border-2 border-gray-300 p-2 rounded-lg w-96'
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+            {hasSearched && (
+              <div ref={dropdownRef} className="absolute w-96 bg-white shadow-lg rounded-lg top-16 m-2 z-10 max-h-80 overflow-y-auto border-4 border-red-400">
+                {searchResults.length > 0 ? (
+                  <ul className="p-0 m-0">
+                    {searchResults.map((item) => (
+                      <li key={item._id} className="p-2 border-b flex items-center cursor-pointer hover:bg-gradient-to-tr from-yellow-500 to-red-400">
+                        <img
+                          src={item.image?.length > 0 ? item.image[0] : "/default-image.jpg"}
+                          alt={item.name}
+                          className="w-12 h-12 rounded border object-cover ml-2"
+                          onError={(e) => e.target.src = "/default-image.jpg"}
+                        />
+                        <Link href={`/page/bid/${item._id}`} className="flex-1 text-gray-700 hover:text-white ml-2 py-2">
+                          {item.name} - ราคา: {item.currentPrice} บาท
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 p-2 text-center">❌ ไม่พบสินค้าที่ตรงกับ "{searchText}"</p>
+                )}
+              </div>
+            )}
+          </div>
 
         {/* icon contact////////////////////////////////////////////////// */}
         <div className="hidden md:flex flex-col items-center space-y-5 md:flex-row md:space-x-5 md:space-y-0 md:p-2">

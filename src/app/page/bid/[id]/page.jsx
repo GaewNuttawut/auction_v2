@@ -6,9 +6,11 @@ import { useSearchParams } from 'next/navigation';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import NavbarBids from '../../components/NavbarBids';
+import NavbarBids from '../../../components/NavbarBids';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+const API_URL = "http://localhost:3111/api/v1";
 
 function ProductDetailsPage() {
   const router = useRouter();
@@ -30,9 +32,6 @@ function ProductDetailsPage() {
   const [images, setImages] = useState([]); // เก็บรูปภาพสินค้าแบบ array
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // ควบคุม Modal ยืนยัน
-  const [pendingBidAmount, setPendingBidAmount] = useState(null); // เก็บค่าบิดที่รอการยืนยัน
-  const [category, setCategory] = useState('');
 
   const id = searchParams.get('id');
   const name = searchParams.get('name');
@@ -41,70 +40,108 @@ function ProductDetailsPage() {
   const prices = searchParams.get('prices');
   const expiresAt = searchParams.get('expiresAt');
 
+  // // 📌 ตรวจสอบการเข้าสู่ระบบ
+  // useEffect(() => {
+  //   const checkLoginStatus = async () => {
+  //     try {
+  //       const response = await fetch('http://localhost:3111/api/v1/auth/check', {
+  //         method: 'GET',
+  //         credentials: 'include',
+  //       });
+  //       if (!response.ok) {
+  //         router.push('/page/login'); // Redirect to login page if not logged in
+  //       }
+  //     } catch (err) {
+  //       router.push('/page/login'); // Redirect to login page if error occurs
+  //     }
+  //   };
+
+  //   checkLoginStatus();
+  // }, [router]);
+
+  // // 📌 ตรวจสอบการเข้าสู่ระบบ
+  // useEffect(() => {
+  //   const checkLoginStatus = async () => {
+  //     try {
+  //       const response = await fetch('http://localhost:3111/api/v1/auth/check', {
+  //         method: 'GET',
+  //         credentials: 'include',
+  //       });
+  //       if (!response.ok) {
+  //         toast.error(
+  //           <div>
+  //             กรุณาเข้าสู่ระบบ
+  //             <div>
+  //               <button onClick={() => router.push('/page/login')} className="bg-red-500 text-white py-1 px-2 rounded mt-2">
+  //                 ยืนยัน
+  //               </button>
+  //             </div>
+  //           </div>
+  //         );
+  //       }
+  //     } catch (err) {
+  //       toast.error(
+  //         <div>
+  //           กรุณาเข้าสู่ระบบ
+  //           <div>
+  //             <button onClick={() => router.push('/page/login')} className="bg-red-500 text-white py-1 px-2 rounded mt-2">
+  //               ยืนยัน
+  //             </button>
+  //           </div>
+  //         </div>
+  //       );
+  //     }
+  //   };
+
+  //   checkLoginStatus();
+  // }, [router]);
+
   // 📌 ดึงข้อมูลสินค้าจาก API
   useEffect(() => {
     if (!id) return;
-  
-    let countdownInterval;
-    let refreshInterval;
-  
-    const loadAuction = async () => {
-      try {
-        const res = await fetch(`http://localhost:3111/api/v1/auction/${id}`);
-        const data = await res.json();
-        if (data.status === 'success') {
-          const auction = data.data;
-          setStartingPrice(auction.startingPrice);
-          setCurrentPrice(auction.currentPrice);
-          setMinimumBidIncrement(auction.minimumBidIncrement);
-          setImages(auction.image || []);
-          setAuction(auction);
-          setDescription(auction.description || 'ไม่มีรายละเอียดสินค้า');
-          setCategory(auction.category || 'ไม่ระบุหมวดหมู่');
-  
-          // เริ่มนับเวลาถอยหลัง
-          const endTime = new Date(auction.expiresAt).getTime();
-          countdownInterval = setInterval(() => {
-            const now = new Date().getTime();
-            const diff = endTime - now;
-            if (diff <= 0) {
-              clearInterval(countdownInterval);
-              setTimeLeft('หมดเวลา');
-            } else {
-              const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-              const minutes = Math.floor((diff / (1000 * 60)) % 60);
-              const seconds = Math.floor((diff / 1000) % 60);
-              setTimeLeft(`${hours}:${minutes}:${seconds}`);
-            }
-          }, 1000);
-        }
-      } catch (err) {
-        console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล', err);
-      }
-    };
-  
-    // โหลดข้อมูลครั้งแรก
-    loadAuction();
-  
-    refreshInterval = setInterval(() => {
-      fetch(`http://localhost:3111/api/v1/auction/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'success') {
-            const auctionData = data.data;
-            setAuction(auctionData);
-            setCurrentPrice(auctionData.currentPrice);
-            setMinimumBidIncrement(auctionData.minimumBidIncrement);
+
+    fetch(`http://localhost:3111/api/v1/auction/${id}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        const auction = data.data;
+        const auctionData = data.data;
+        setStartingPrice(auction.startingPrice);
+        setCurrentPrice(auction.currentPrice);
+        setMinimumBidIncrement(auction.minimumBidIncrement);
+        setDescription(auction.description); // Set the description state
+        setProduct(auction.product); // Set the product state
+        setImages(auction.image || []); // ✅ รองรับหลายรูปภาพ
+        setAuction(auctionData);
+        setLoading(false);
+
+        // Handle both single image and array of images
+        const auctionImages = Array.isArray(auction.image) ? auction.image : [auction.image];
+        setImages(auctionImages);
+        setSelectedImage(auctionImages[0]); // Set first image as selected
+
+        // Log the product data to verify
+        console.log('Product data:', auction.product);
+
+        // ✅ ตั้งเวลาหมดอายุ
+        const endTime = new Date(auction.expiresAt).getTime();
+        const interval = setInterval(() => {
+          const now = new Date().getTime();
+          const diff = endTime - now;
+          if (diff <= 0) {
+            clearInterval(interval);
+            setTimeLeft('หมดเวลา');
+          } else {
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / (1000 * 60)) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            setTimeLeft(`${hours}:${minutes}:${seconds}`);
           }
-        })
-        .catch(err => console.error('⚠️ ดึงราคาล่าสุดล้มเหลว', err));
-    }, 3000);
-    
-  
-    return () => {
-      clearInterval(countdownInterval);
-      clearInterval(refreshInterval);
-    };
+        }, 1000);
+
+        return () => clearInterval(interval); // Clear interval on component unmount
+      }
+    });
   }, [id]);
 
   // 📌 ดึงประวัติการบิดจาก API
@@ -127,42 +164,40 @@ function ProductDetailsPage() {
     }
   };
 
+
   // 📌 ฟังก์ชันสำหรับการประมูล
-  const handleBid = () => {
+  const handleBid = async () => {
     if (!bidAmount || bidAmount < currentPrice + minimumBidIncrement) {
-      showAlertModal(`กรุณาใส่ราคาที่มากกว่าหรือเท่ากับ ${currentPrice + minimumBidIncrement} บาท`);
+      toast.error(`Please enter a price greater than or equal to ${currentPrice + minimumBidIncrement} ฿`);
       return;
     }
-    setPendingBidAmount(bidAmount); // เก็บค่าบิดที่รอการยืนยัน
-    setShowConfirmModal(true); // แสดง Modal ยืนยัน
-  };
 
-  const confirmBid = async () => {
     try {
       const response = await fetch(`http://localhost:3111/api/v1/auction/${id}/bids`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ amount: Number(pendingBidAmount) }),
+        body: JSON.stringify({ amount: Number(bidAmount) }),
       });
       const data = await response.json();
       if (data.status === 'success') {
-        // ลบ toast และรีโหลดหน้าจอโดยตรง
-        window.location.reload();
+        toast.success(
+          <div>
+            Successful bid!
+            <div>
+              <button onClick={() => window.location.reload()} className="bg-green-500 text-white py-1 px-2 rounded mt-2">
+                Confirm
+              </button>
+            </div>
+          </div>
+        );
+        // window.location.reload();
       } else {
         alert(data.message);
       }
     } catch (err) {
       alert('เกิดข้อผิดพลาด!');
-    } finally {
-      setShowConfirmModal(false); // ปิด Modal
-      setPendingBidAmount(null); // ล้างค่าบิดที่รอการยืนยัน
     }
-  };
-
-  const cancelBid = () => {
-    setShowConfirmModal(false); // ปิด Modal
-    setPendingBidAmount(null); // ล้างค่าบิดที่รอการยืนยัน
   };
 
   const handleCloseBidHistory = (e) => {
@@ -184,9 +219,9 @@ function ProductDetailsPage() {
   };
 
   useEffect(() => {
-  // ตั้งค่า bidAmount เป็นยอดปัจจุบัน + ยอดบิดขั้นต่ำ
-  setBidAmount((currentPrice + minimumBidIncrement).toFixed(2));
-}, [currentPrice, minimumBidIncrement]);
+    setBidAmount(currentPrice.toFixed(2));
+  }, [currentPrice]);
+
 
   // 📌 ฟังก์ชันเปลี่ยนรูปภาพ
   const nextImage = () => {
@@ -209,6 +244,7 @@ function ProductDetailsPage() {
   return (
     <div>
       <NavbarBids />
+      <ToastContainer />
       <div className="max-w-screen-2xl mx-auto bg-white pt-20 m-10 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Main Image Section */}
@@ -271,6 +307,25 @@ function ProductDetailsPage() {
               </div>
             )}
           </div>
+          {/* <div className="rounded-lg overflow-hidden">
+            <Slider>
+              {product && product.image && Array.isArray(product.image) ? (
+                product.image.map((img, index) => (
+                  <div key={index}>
+                    <img src={img} alt={`${name} ${index + 1}`} className="w-full h-auto object-cover" />
+                  </div>
+                ))
+              ) : (
+                product && product.image && (
+                  <img src={product.image} alt={name} className="w-full h-auto object-cover" />
+                )
+              )}
+            </Slider>
+          </div> */}
+            {/* <div className="rounded-lg overflow-hidden">
+              <img src={image} alt={name} className="w-full h-auto object-cover" />
+            </div> */}
+
           <div className="space-y-6">
             <h1 className="text-3xl font-bold">{name}</h1>
 
@@ -284,8 +339,8 @@ function ProductDetailsPage() {
                 <span className="text-2xl font-bold text-green-600">{currentPrice} ฿</span>
               </div>
               <div className="flex justify-between items-center mt-4">
-                  <span className="text-gray-600">Remaining time</span>
-                  <span className="text-2xl font-bold text-red-500">{timeLeft}</span>
+                <span className="text-gray-600">Remaining time</span>
+                <span className="text-2xl font-bold text-red-500">{timeLeft}</span>
               </div>
             </div>
 
@@ -306,7 +361,7 @@ function ProductDetailsPage() {
                     className="w-50 p-2 border rounded"
                     value={bidAmount}
                     onChange={(e) => setBidAmount(e.target.value)}
-                    min={(currentPrice + minimumBidIncrement).toFixed(2)} // กำหนดยอดขั้นต่ำที่ต้องบิด
+                    min={price}
                   />
                   <button onClick={handleIncrementBid} className="bg-[#00FF00] hover:bg-green-400 text-black font-bold py-2 px-4 rounded">
                     +
@@ -331,28 +386,6 @@ function ProductDetailsPage() {
           </div>
         </div>
       </div>
-
-      {showConfirmModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-96 text-center">
-            <p className="text-lg font-semibold">ยืนยันการบิด {pendingBidAmount} บาท?</p>
-            <div className="flex justify-center space-x-4 mt-4">
-              <button
-                onClick={confirmBid}
-                className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-              >
-                ยืนยัน
-              </button>
-              <button
-                onClick={cancelBid}
-                className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600"
-              >
-                ยกเลิก
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showBidHistory && (
         <div 
